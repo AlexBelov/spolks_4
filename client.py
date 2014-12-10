@@ -63,10 +63,19 @@ def tcp_download_file(filename):
         return 1
 
     file_size = int(s.recv(file_size_length, socket.MSG_WAITALL))
-    data = s.recv(file_size, socket.MSG_WAITALL)
 
     file = open('old_' + filename, "wb")
-    file.write(data)
+
+    while True:
+        try:
+            data = s.recv(BUFFER_SIZE)
+            if not data:
+                break
+            file.write(data)
+        except Exception:
+            file.close()
+            print 'File Error'
+            return
 
     file.close()
     s.close

@@ -19,7 +19,7 @@ def tcp_upload_file(conn, filename):
         file = open(filename, "rb")
     except Exception:
         print 'File not found'
-        conn.send(chr('0'))
+        conn.send(chr(0))
         return 1
 
     file_length = str(os.path.getsize(filename))
@@ -42,13 +42,23 @@ def tcp_upload_file(conn, filename):
 def tcp_download_file(conn):
     filename_length = ord(conn.recv(1))
     filename = conn.recv(filename_length, socket.MSG_WAITALL)
+
+    file = open('new_' + filename, "wb")
+
     file_size_length = ord(conn.recv(1))
     file_length = int(conn.recv(file_size_length, socket.MSG_WAITALL))
-    data = conn.recv(file_length, socket.MSG_WAITALL)
-    print filename
-    print file_length
-    file = open('new_' + filename, "wb")
-    file.write(data)
+
+    while True:
+        try:
+            data = conn.recv(BUFFER_SIZE)
+            if not data:
+                break
+            file.write(data)
+        except Exception:
+            file.close()
+            print 'File Error'
+            return
+
     file.close()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
