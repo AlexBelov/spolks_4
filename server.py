@@ -5,7 +5,7 @@ import sys
 import os
 
 if len(sys.argv) < 3:
-    print 'Usage: client.py HOST PORT'
+    print 'Usage: server.py HOST PORT'
     sys.exit(0)
 
 HOST = sys.argv[1]

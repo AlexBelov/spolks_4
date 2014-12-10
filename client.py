@@ -87,7 +87,7 @@ while True:
     command = str.split(command)
     if len(command) != 2:
         continue
-    if command[0] == 'upload':
+    if command[0] == UPLOAD_COMMAND:
         tcp_upload_file(command[1])
-    elif command[0] == 'download':
+    elif command[0] == DOWNLOAD_COMMAND:
         tcp_download_file(command[1])
