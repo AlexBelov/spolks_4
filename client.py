@@ -1,18 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import socket
 import sys
 import os
+import random
 
 if len(sys.argv) < 3:
-    print 'Usage: client.py HOST PORT'
+    print('Usage: client.py HOST PORT')
     sys.exit(0)
 
 HOST = sys.argv[1]
 PORT = int(sys.argv[2])
 UPLOAD_COMMAND = 'upload'
 DOWNLOAD_COMMAND = 'download'
-BUFFER_SIZE = 2
+BUFFER_SIZE = 5
 
 def get_file_offset(filename):
     try:
@@ -27,10 +28,12 @@ def get_file_mode(file_offset):
         return 'ab'
 
 def tcp_upload_file(filename):
+    sent_bytes = 0
+
     try:
         file = open(filename, "rb")
     except Exception:
-        print 'File not found'
+        print('File not found')
         return 1
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,27 +42,42 @@ def tcp_upload_file(filename):
     file_length = os.path.getsize(filename)
     filename_length = len(filename)
 
-    s.send(chr(len(UPLOAD_COMMAND)))
-    s.send(UPLOAD_COMMAND)
-    s.send(chr(filename_length))
-    s.send(filename)
+    s.send(chr(len(UPLOAD_COMMAND)).encode())
+    s.send(UPLOAD_COMMAND.encode())
+    s.send(chr(filename_length).encode())
+    s.send(filename.encode())
 
-    file_offset_length = ord(s.recv(1))
-    file_offset = int(s.recv(file_offset_length, socket.MSG_WAITALL))
+    file_offset_length = ord(s.recv(1).decode())
+    file_offset = int(s.recv(file_offset_length, socket.MSG_WAITALL).decode())
 
     file_length -= file_offset
     file_length = str(file_length)
 
-    s.send(chr(len(file_length)))
-    s.send(file_length)
+    s.send(chr(len(file_length)).encode())
+    s.send(file_length.encode())
 
     file.seek(file_offset)
 
+    oob_messages = 0
+    oob_message = 97
+
     while True:
+        s.send(chr(oob_message).encode(), socket.MSG_OOB)
+        print('Sent: ', chr(oob_message))
+        oob_messages += 1
+
+        if oob_message < ord('z'):
+            oob_message += 1
+        else:
+            oob_message = 97
+
         msg = file.read(BUFFER_SIZE)
         if len(msg) == 0:
             break
         s.send(msg)
+        sent_bytes += len(msg)
+
+    print(oob_messages)
 
     file.close
     s.close
@@ -70,25 +88,25 @@ def tcp_download_file(filename):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((HOST, PORT))
 
-    s.send(chr(len(DOWNLOAD_COMMAND)))
-    s.send(DOWNLOAD_COMMAND)
+    s.send(chr(len(DOWNLOAD_COMMAND)).encode())
+    s.send(DOWNLOAD_COMMAND.encode())
 
     filename_length = len(filename)
-    s.send(chr(filename_length))
-    s.send(filename)
+    s.send(chr(filename_length).encode())
+    s.send(filename.encode())
 
     file_offset = str(get_file_offset('old_' + filename))
     file_offset = str(file_offset)
-    s.send(chr(len(file_offset)))
-    s.send(file_offset)
+    s.send(chr(len(file_offset)).encode())
+    s.send(file_offset.encode())
 
-    file_size_length = ord(s.recv(1))
+    file_size_length = ord(s.recv(1).decode())
 
     if file_size_length == 0:
-        print 'File not found'
+        print('File not found')
         return 1
 
-    file_size = int(s.recv(file_size_length, socket.MSG_WAITALL))
+    file_size = int(s.recv(file_size_length, socket.MSG_WAITALL).decode())
 
     file = open('old_' + filename, get_file_mode(file_offset))
 
@@ -100,7 +118,7 @@ def tcp_download_file(filename):
             file.write(data)
         except Exception:
             file.close()
-            print 'File Error'
+            print('File Error')
             return
 
     file.close()
@@ -109,7 +127,7 @@ def tcp_download_file(filename):
     return 0
 
 while True:
-    command = raw_input('').rstrip('\n')
+    command = input('').rstrip('\n')
     command = str.split(command)
     if len(command) != 2:
         continue
