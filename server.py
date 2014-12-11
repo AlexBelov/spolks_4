@@ -25,6 +25,18 @@ class LastClient:
         print self.file_name
         print self.command
 
+def get_file_offset(filename):
+    try:
+        return os.path.getsize(filename)
+    except Exception:
+        return 0
+
+def get_file_mode(file_offset):
+    if file_offset == '0':
+        return 'wb'
+    else:
+        return 'ab'
+
 def tcp_upload_file(conn, filename):
     file_offset_length = ord(conn.recv(1))
     file_offset = int(conn.recv(file_offset_length, socket.MSG_WAITALL))
@@ -59,9 +71,14 @@ def tcp_download_file(conn):
     filename_length = ord(conn.recv(1))
     filename = conn.recv(filename_length, socket.MSG_WAITALL)
 
+    file_offset = str(get_file_offset('new_' + filename))
+    file_offset = str(file_offset)
+    conn.send(chr(len(file_offset)))
+    conn.send(file_offset)
+
     LastClient.file_name = filename
 
-    file = open('new_' + filename, "wb")
+    file = open('new_' + filename, get_file_mode(file_offset))
 
     file_size_length = ord(conn.recv(1))
     file_length = int(conn.recv(file_size_length, socket.MSG_WAITALL))
