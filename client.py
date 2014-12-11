@@ -14,6 +14,12 @@ UPLOAD_COMMAND = 'upload'
 DOWNLOAD_COMMAND = 'download'
 BUFFER_SIZE = 2
 
+def get_file_offset(filename):
+    try:
+        return os.path.getsize(filename)
+    except Exception:
+        return 0
+
 def tcp_upload_file(filename):
     try:
         file = open(filename, "rb")
@@ -56,15 +62,29 @@ def tcp_download_file(filename):
     s.send(chr(filename_length))
     s.send(filename)
 
+    file_offset = str(get_file_offset('old_' + filename))
+    file_offset = str(file_offset)
+    s.send(chr(len(file_offset)))
+    s.send(file_offset)
+
     file_size_length = ord(s.recv(1))
 
     if file_size_length == 0:
         print 'File not found'
         return 1
 
+    # if file_offset == os.path.getsize('old_' + filename):
+    #     print 'We already have such file'
+    #     return 1
+
     file_size = int(s.recv(file_size_length, socket.MSG_WAITALL))
 
-    file = open('old_' + filename, "wb")
+    if file_offset == 0:
+        file_mode = 'wb'
+    else:
+        file_mode = 'ab'
+
+    file = open('old_' + filename, file_mode)
 
     while True:
         try:
