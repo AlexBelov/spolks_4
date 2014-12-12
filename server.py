@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import socket
 import sys
 import os
+import time
 
 if len(sys.argv) < 3:
     print('Usage: server.py HOST PORT')
@@ -38,22 +39,22 @@ def get_file_mode(file_offset):
         return 'ab'
 
 def tcp_upload_file(conn, filename):
-    file_offset_length = ord(conn.recv(1).decode())
-    file_offset = int(conn.recv(file_offset_length, socket.MSG_WAITALL).decode())
+    file_offset_length = ord(conn.recv(1))
+    file_offset = int(conn.recv(file_offset_length, socket.MSG_WAITALL))
 
     try:
         file = open(filename, "rb")
     except Exception:
         print('File not found')
-        conn.send(chr(0).encode()) # send file size
+        conn.send(chr(0)) # send file size
         return 1
 
     file_length = os.path.getsize(filename)
     file_length -= file_offset
     file_length = str(file_length)
 
-    conn.send(chr(len(file_length)).encode())
-    conn.send(file_length.encode())
+    conn.send(chr(len(file_length)))
+    conn.send(file_length)
 
     file.seek(file_offset)
 
@@ -70,28 +71,28 @@ def tcp_upload_file(conn, filename):
 def tcp_download_file(conn):
     received_bytes = 0
 
-    filename_length = ord(conn.recv(1).decode())
-    filename = conn.recv(filename_length, socket.MSG_WAITALL).decode()
+    filename_length = ord(conn.recv(1))
+    filename = conn.recv(filename_length, socket.MSG_WAITALL)
 
     file_offset = str(get_file_offset('new_' + filename))
     file_offset = str(file_offset)
-    conn.send(chr(len(file_offset)).encode())
-    conn.send(file_offset.encode())
+    conn.send(chr(len(file_offset)))
+    conn.send(file_offset)
 
     LastClient.file_name = filename
 
     file = open('new_' + filename, get_file_mode(file_offset))
 
-    file_size_length = ord(conn.recv(1).decode())
-    file_length = int(conn.recv(file_size_length, socket.MSG_WAITALL).decode())
+    file_size_length = ord(conn.recv(1))
+    file_length = int(conn.recv(file_size_length, socket.MSG_WAITALL))
 
     oob_messages = 0
 
     while True:
         try:
-            data = conn.recv(1, socket.MSG_OOB).decode()
+            data = conn.recv(1, socket.MSG_OOB)
         except Exception:
-            data = None        
+            data = None
         if data:
             print('Received: ', data)
             oob_messages += 1
@@ -124,19 +125,19 @@ while True:
     LastClient.addr = addr[0]
 
     try:
-        command_length = ord(conn.recv(1).decode())
+        command_length = ord(conn.recv(1))
     except Exception:
         continue
 
-    command = conn.recv(command_length, socket.MSG_WAITALL).decode()
+    command = conn.recv(command_length, socket.MSG_WAITALL)
 
     if command == UPLOAD_COMMAND:
         LastClient.command = UPLOAD_COMMAND
         tcp_download_file(conn)
     elif command == DOWNLOAD_COMMAND:
         LastClient.command = DOWNLOAD_COMMAND
-        filename_length = ord(conn.recv(1).decode())
-        filename = conn.recv(filename_length, socket.MSG_WAITALL).decode()
+        filename_length = ord(conn.recv(1))
+        filename = conn.recv(filename_length, socket.MSG_WAITALL)
         LastClient.file_name = filename
         tcp_upload_file(conn, filename)
 
