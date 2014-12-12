@@ -12,7 +12,7 @@ HOST = sys.argv[1]
 PORT = int(sys.argv[2])
 UPLOAD_COMMAND = 'upload'
 DOWNLOAD_COMMAND = 'download'
-BUFFER_SIZE = 3
+BUFFER_SIZE = 100
 
 class LastClient:
     addr = ''
@@ -91,10 +91,11 @@ def tcp_download_file(conn):
         try:
             data = conn.recv(1, socket.MSG_OOB).decode()
         except Exception:
-            data = None
+            data = None        
         if data:
             print('Received: ', data)
             oob_messages += 1
+
         try:
             data = conn.recv(BUFFER_SIZE)
             if not data:
@@ -110,6 +111,7 @@ def tcp_download_file(conn):
     file.close()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind((HOST, PORT))
 s.settimeout(360)
 s.listen(1)

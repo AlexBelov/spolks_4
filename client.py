@@ -13,7 +13,7 @@ HOST = sys.argv[1]
 PORT = int(sys.argv[2])
 UPLOAD_COMMAND = 'upload'
 DOWNLOAD_COMMAND = 'download'
-BUFFER_SIZE = 5
+BUFFER_SIZE = 100
 
 def get_file_offset(filename):
     try:
@@ -62,7 +62,9 @@ def tcp_upload_file(filename):
     oob_message = 97
 
     while True:
-        s.send(chr(oob_message).encode(), socket.MSG_OOB)
+        oob_message = chr(oob_message)
+        s.send(str(oob_message).encode(), socket.MSG_OOB)
+        oob_message = ord(oob_message)
         print('Sent: ', chr(oob_message))
         oob_messages += 1
 
