@@ -3,7 +3,7 @@ import socket
 import argparse
 import os
 
-BUF_SIZE = 128
+BUF_SIZE = 8192
 
 def run_server(port, filename):
 	
@@ -40,8 +40,8 @@ def run_server(port, filename):
 		data = f.read(BUF_SIZE)
 		sentsize += BUF_SIZE
 		percent = int(float(sentsize)*100/float(filesize))
-		print "{0} Kb of {1} Kb sent ({2}%)".format(sentsize/1024, filesize/1024, percent)
-		sys.stdout.write('\033M') #  write all time in output in 1 string
+		#print "{0} Kb of {1} Kb sent ({2}%)".format(sentsize/1024, filesize/1024, percent)
+		#sys.stdout.write('\033M') #  write all time in output in 1 string
 		if not data:
 			sys.stdout.write('\033D')
 			print 'Data has been transfered'
@@ -95,20 +95,28 @@ def run_client(host, port):
 
 	while True:
 		try:
+			s.settimeout(0)
 			data = s.recv(2, socket.MSG_OOB) # catcing urgent data (2 bytes = 1 char)
-		except socket.error, value:
+		except Exception:
 			data = None	
 		if data:
-			#sys.stdout.write('\033D') # go next line
+		# 	#sys.stdout.write('\033D') # go next line
 			print '\033[0;32m Urgent: {0} Kb ({1}0%) received \033[0m'.format(rcvdsize/1024, data)
 		else:		#i.e. we haven't MSG_OOB
-			data = s.recv(BUF_SIZE)
+			try:
+				s.settimeout(5)
+				data = s.recv(BUF_SIZE)
+			except Exception:
+				data = None
+
+			if not data:
+				break	
+
 			rcvdsize += BUF_SIZE
 			f.write(data)
 			#print BUF_SIZE
 			#sys.stdout.write('\033M') #  write all time in output in 1 string
-		if not data:
-			break	
+		
 	print 'Done!'
 	f.close()
 	s.close()
